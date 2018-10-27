@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<html lang="en-us">
+
+
+
+<head>
+
+  <meta charset="UTF-8">
+  <title>Train Times</title>
+
+  <!-- Bootstrap link -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+
+  <!-- Firebase link -->
+  <script src="https://www.gstatic.com/firebasejs/4.12.0/firebase.js"></script>
+
+</head>
+
+<body>
+
+  <div class="container">
+
+      <div class="jumbotron">
+          <h1 class="text-center">Train Times</h1>
+        </div>         
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th scope="col">Train Name</th>
+                    <th scope="col">Destination</th>
+                    <th scope="col">Frequency (min)</th>
+                    <th scope="col">Next Arrival</th>
+                    <th scope="col">Minutes Away</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="full-member-name"></td>
+                    <td id="full-member-destination"></td>
+                    <td id="full-member-frequency"></td>
+                    <td id="full-member-nextArrival"></td>
+                    <td id="full-member-minsAway"></td>
+
+                </tr>
+            </tbody>
+        </table>  
+
+    <div class="row">
+
+      <!-- Add Train Info-->
+      <div class="col-lg-12">
+        <div class="card">
+          <div class="card-header">
+            Add Train
+          </div>
+          <div class="card-body">
+            <form role="form">
+              <div class="form-group row">
+                <label for="name-input">Train Name:</label>
+                <input class="form-control" id="name-input" type="text">
+              </div>
+              <div class="form-group row">
+                <label for="destination-input">Destination:</label>
+                <input class="form-control" id="destination-input" type="text>
+              </div>
+              <div class="form-group row">
+                <label for="firstTime-input">First Train Time (HH:mm):</label>
+                <input class="form-control" id="firstTime-input" type="time">
+              </div>
+              <div class="form-group row">
+                <label for="frequency-input">Frequency (mins)</label>
+                <input class="form-control" id="frequency-input" type="text">
+              </div>
+              <button class="btn btn-default" id="add-user" type="submit">Submit</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery.js"></script>
+
+  <!-- Moment JS -->
+  <script src="https://cdn.jsdelivr.net/momentjs/2.12.0/moment.min.js"></script>
+
+  <!-- Script -->
+  <script>
+
+    // Initialize Firebase
+    var config = {
+        apiKey: "AIzaSyDL2TwzD3g-WarkVtoHZQBEtYrx3nhS1pk",
+        authDomain: "myfirstproject-b6c03.firebaseapp.com",
+        databaseURL: "https://myfirstproject-b6c03.firebaseio.com",
+        projectId: "myfirstproject-b6c03",
+        stortimeBucket: "myfirstproject-b6c03.appspot.com",
+        messagingSenderId: "768477962192"
+    };
+
+    firebase.initializeApp(config);
+
+    var dataRef = firebase.database();
+
+    // Initial Values
+    var name = "";
+    var destination = "";
+    var firstTime = 0;
+    var frequency = 0;
+    var currentTime = moment();
+    console.log("CURRENT TIME: " + moment(currentTime).format("hh:mm"));
+    
+    // Capture Button Click
+    $("#add-user").on("click", function(event) {
+      event.preventDefault();
+
+      name = $("#name-input").val().trim();
+      destination = $("#destination-input").val().trim();
+      firstTime = $("#firstTime-input").val().trim();
+      frequency = $("#frequency-input").val().trim();
+      
+      // First Time (pushed back 1 year to make sure it comes before current time)
+      var firstTimeConverted = moment(firstTime, "HH:mm").subtract(1, "years");
+      console.log(firstTimeConverted);
+
+      // Difference between the times
+      var diffTime = moment().diff(moment(firstTimeConverted), "minutes");
+      console.log("DIFFERENCE IN TIME: " + diffTime);
+
+      // Time apart (remainder)
+      var tRemainder = diffTime % frequency;
+      console.log(tRemainder);
+
+      // Minute Until Train
+      var minsAway = frequency - tRemainder;
+      console.log("MINUTES TILL TRAIN: " + minsAway);
+
+      // Next Train
+      var nextArrivalX = moment().add(minsAway, "minutes");
+      console.log("ARRIVAL TIME: " + moment(nextArrivalX).format("hh:mm"));
+
+      var nextArrival = moment(nextArrivalX).format("hh:mm");
+      console.log("ARRIVAL TIME: " + nextArrival);
+    
+      // Code for the push
+      dataRef.ref().push({
+
+        name: name,
+        destination: destination,
+        firstTime: firstTime,
+        frequency: frequency,
+        minsAway: minsAway,
+        nextArrival: nextArrival,
+        dateAdded: firebase.database.ServerValue.TIMESTAMP
+      });
+    });
+
+    // Firebase watcher + initial loader 
+    dataRef.ref().on("child_added", function(childSnapshot) {
+
+      // Log everything that's coming out of snapshot
+      console.log(childSnapshot.val().name);
+      console.log(childSnapshot.val().destination);
+      console.log(childSnapshot.val().firstTime);
+      console.log(childSnapshot.val().frequency);
+      console.log(childSnapshot.val().nextArrival);
+      console.log(childSnapshot.val().minsAway);
+      
+
+      $("#full-member-name").append("<div class='well'><span class='member-name'> " +
+        childSnapshot.val().name + " </span></div>");  
+      $("#full-member-destination").append("<div class='well'><span class='member-destination'> " + 
+        childSnapshot.val().destination + " </span></div>");  
+      $("#full-member-frequency").append("<div class='well'><span class='member-frequency'> " + 
+      childSnapshot.val().frequency + " </span></div>");
+      $("#full-member-nextArrival").append("<div class='well'><span class='member-nextArrival'> " + 
+        childSnapshot.val().nextArrival + " </span></div>");  
+      $("#full-member-minsAway").append("<div class='well'><span class='member-minsAway'> " + 
+      childSnapshot.val().minsAway + " </span></div>");
+
+
+      // Handle the errors
+    }, function(errorObject) {
+      console.log("Errors handled: " + errorObject.code);
+    });
+
+    dataRef.ref().orderByChild("dateAdded").limitToLast(1).on("child_added", function(snapshot) {
+      
+      // Change the HTML to reflect
+      $("#name-display").text(snapshot.val().name);
+      $("#destination-display").text(snapshot.val().destination);
+      $("#nextArrival-display").text(snapshot.val().nextArrival);
+      $("#frequency-display").text(snapshot.val().frequency);
+      $("#minsAway-display").text(snapshot.val().minsAway);
+    });
+
+  </script>
+</body>
+
+</html>
